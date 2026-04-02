@@ -9,6 +9,25 @@ import { Footer } from '@/components/footer'
 export default function Home() {
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'greed-compute',
+            applicationCategory: 'DeveloperApplication',
+            operatingSystem: 'Cloud',
+            description:
+              'Stateful Python execution engine for AI agents. Checkpoint interpreter state, fork N parallel workers, zero cold starts.',
+            url: 'https://greed-compute-ui.vercel.app',
+            offers: [
+              { '@type': 'Offer', price: '0', priceCurrency: 'USD', name: 'Free' },
+              { '@type': 'Offer', price: '29', priceCurrency: 'USD', name: 'Pro' },
+            ],
+          }),
+        }}
+      />
       <Nav />
       <Hero />
       <Stats />

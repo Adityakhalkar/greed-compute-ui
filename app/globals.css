@@ -9,8 +9,8 @@
   --border:          #252522;
   --border-strong:   #333330;
   --text-primary:    #EFEFED;
-  --text-secondary:  #888884;
-  --text-tertiary:   #555552;
+  --text-secondary:  #A0A09C;
+  --text-tertiary:   #6B6B67;
   --accent:          #C8F135;
   --accent-dim:      #8AAD22;
   --error:           #E84040;
@@ -53,6 +53,12 @@ body {
   background: var(--text-tertiary);
 }
 
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) var(--background);
+}
+
 /* terminal syntax highlight */
 .token-keyword  { color: #C8F135; }
 .token-string   { color: #A8D8A8; }
@@ -60,3 +66,12 @@ body {
 .token-number   { color: #F0A060; }
 .token-function { color: #88C8F0; }
 .token-punct    { color: #888884; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -25,6 +25,64 @@ function CopyIcon() {
   )
 }
 
+function SkeletonBlock({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse bg-border rounded', className)} />
+}
+
+function StatCardSkeleton() {
+  return (
+    <div className="border border-border bg-surface p-6">
+      <SkeletonBlock className="h-3 w-24 mb-4" />
+      <SkeletonBlock className="h-7 w-32 mb-3" />
+      <SkeletonBlock className="h-1 w-full" />
+    </div>
+  )
+}
+
+function LinkCardSkeleton() {
+  return (
+    <div className="border border-border bg-surface p-6">
+      <SkeletonBlock className="h-4 w-28 mb-2" />
+      <SkeletonBlock className="h-3 w-48" />
+    </div>
+  )
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-16 md:px-12">
+      <div className="flex items-start justify-between mb-10">
+        <div>
+          <SkeletonBlock className="h-7 w-40 mb-2" />
+          <SkeletonBlock className="h-3 w-24" />
+        </div>
+        <SkeletonBlock className="h-4 w-16" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <LinkCardSkeleton />
+        <LinkCardSkeleton />
+      </div>
+    </div>
+  )
+}
+
+function UsageStatsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+      <StatCardSkeleton />
+      <StatCardSkeleton />
+      <StatCardSkeleton />
+    </div>
+  )
+}
+
 function DashboardContent() {
   const searchParams = useSearchParams()
   const [login, setLogin]         = useState<string>('')
@@ -81,11 +139,7 @@ function DashboardContent() {
   const requestPercent = usage ? Math.round((usage.requests.used / usage.requests.limit) * 100) : 0
 
   if (!ready) {
-    return (
-      <div className="mx-auto max-w-5xl px-6 py-24 text-center">
-        <p className="text-text-tertiary text-sm">Loading...</p>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   return (
@@ -132,7 +186,7 @@ function DashboardContent() {
         )}
       </AnimatePresence>
 
-      {loading && <p className="text-text-tertiary text-sm">Loading...</p>}
+      {loading && !usage && <UsageStatsSkeleton />}
 
       {usage && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
@@ -149,7 +203,7 @@ function DashboardContent() {
               {usage.requests.used}
               <span className="text-text-tertiary text-base font-normal"> / {usage.requests.limit === 2147483647 ? '∞' : usage.requests.limit}</span>
             </p>
-            <div className="mt-3 h-1 bg-border-strong">
+            <div className="mt-3 h-1 bg-border-strong" role="progressbar" aria-valuenow={requestPercent} aria-valuemin={0} aria-valuemax={100}>
               <div className={cn('h-full transition-all', requestPercent > 80 ? 'bg-error' : 'bg-accent')} style={{ width: `${Math.min(requestPercent, 100)}%` }} />
             </div>
           </div>
@@ -159,7 +213,7 @@ function DashboardContent() {
               {usage.storage.used_mb.toFixed(1)}
               <span className="text-text-tertiary text-base font-normal"> / {usage.storage.limit_mb} MB</span>
             </p>
-            <div className="mt-3 h-1 bg-border-strong">
+            <div className="mt-3 h-1 bg-border-strong" role="progressbar" aria-valuenow={storagePercent} aria-valuemin={0} aria-valuemax={100}>
               <div className={cn('h-full transition-all', storagePercent > 80 ? 'bg-error' : 'bg-accent')} style={{ width: `${Math.min(storagePercent, 100)}%` }} />
             </div>
             <p className="mt-2 text-xs text-text-tertiary">Retention: {usage.checkpoint_retention_days} days</p>
@@ -185,7 +239,7 @@ export default function Dashboard() {
   return (
     <main>
       <Nav />
-      <Suspense fallback={<div className="mx-auto max-w-5xl px-6 py-16 text-text-tertiary text-sm">Loading...</div>}>
+      <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />
       </Suspense>
     </main>

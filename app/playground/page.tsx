@@ -93,6 +93,7 @@ export default function Playground() {
           <select
             value={template}
             onChange={e => setTemplate(e.target.value)}
+            aria-label="Session template"
             className="bg-background border border-border px-2 py-1 text-xs font-mono text-text-secondary focus:outline-none focus:border-accent"
           >
             <option value="blank">blank</option>
@@ -133,6 +134,7 @@ export default function Playground() {
             <textarea
               value={code}
               onChange={e => setCode(e.target.value)}
+              aria-label="Python code editor"
               onKeyDown={e => {
                 if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                   e.preventDefault()

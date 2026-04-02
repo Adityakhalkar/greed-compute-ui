@@ -91,11 +91,14 @@ export function ApiReference() {
 
         <div className="border border-border">
           {/* Tab bar */}
-          <div className="flex border-b border-border overflow-x-auto">
+          <div className="flex border-b border-border overflow-x-auto" role="tablist">
             {TABS.map((t, i) => (
               <button
                 key={t.label}
                 onClick={() => setActive(i)}
+                role="tab"
+                aria-selected={active === i}
+                id={`tab-${i}`}
                 className={`px-4 py-3 text-xs font-mono whitespace-nowrap transition-colors border-r border-border last:border-r-0 ${
                   active === i
                     ? 'bg-background text-text-primary'
@@ -115,6 +118,8 @@ export function ApiReference() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
+              role="tabpanel"
+              aria-labelledby={`tab-${active}`}
               className="grid grid-cols-1 lg:grid-cols-2"
             >
               {/* Request */}

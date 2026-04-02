@@ -1,10 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-
-gsap.registerPlugin(ScrollTrigger)
 
 const STATS = [
   { value: '500×', label: 'faster warm starts vs cold-spawning', sub: 'median fork latency: 80ms' },
@@ -18,21 +14,24 @@ export function Stats() {
 
   useEffect(() => {
     if (!rootRef.current) return
-    const items = rootRef.current.querySelectorAll('[data-stat]')
-    gsap.fromTo(items,
-      { opacity: 0, y: 20 },
-      {
-        opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: 'power2.out',
-        scrollTrigger: { trigger: rootRef.current, start: 'top 80%' },
-      }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          entry.target.setAttribute('data-visible', '')
+          observer.disconnect()
+        }
+      },
+      { threshold: 0, rootMargin: '0px 0px -20% 0px' }
     )
+    observer.observe(rootRef.current)
+    return () => observer.disconnect()
   }, [])
 
   return (
     <section ref={rootRef} className="border-b border-border px-6 py-16 md:px-12 lg:px-24 bg-surface">
       <div className="mx-auto max-w-6xl grid grid-cols-2 md:grid-cols-4 gap-8">
-        {STATS.map(stat => (
-          <div key={stat.value} data-stat className="opacity-0">
+        {STATS.map((stat, i) => (
+          <div key={stat.value} data-stat style={{ transitionDelay: `${i * 0.1}s` }}>
             <p className="text-3xl md:text-4xl font-semibold text-accent tabular-nums mb-1">{stat.value}</p>
             <p className="text-sm text-text-secondary leading-snug mb-1">{stat.label}</p>
             <p className="text-xs text-text-tertiary font-mono">{stat.sub}</p>

@@ -1,8 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { gsap } from 'gsap'
 import Link from 'next/link'
 
 const TERMINAL_LINES = [
@@ -17,18 +15,6 @@ const TERMINAL_LINES = [
 ]
 
 export function Hero() {
-  const termRef = useRef<HTMLDivElement>(null)
-  const linesRef = useRef<(HTMLParagraphElement | null)[]>([])
-
-  useEffect(() => {
-    linesRef.current.forEach((el, i) => {
-      if (!el) return
-      gsap.fromTo(el,
-        { opacity: 0, y: 6 },
-        { opacity: 1, y: 0, duration: 0.3, delay: TERMINAL_LINES[i].delay, ease: 'power2.out' }
-      )
-    })
-  }, [])
 
   return (
     <section className="px-6 py-24 md:px-12 lg:px-24 border-b border-border">
@@ -95,12 +81,12 @@ export function Hero() {
             <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
             <span className="ml-2 text-xs text-text-tertiary">greed-compute</span>
           </div>
-          <div ref={termRef} className="p-5 space-y-1.5 min-h-[220px]">
+          <div className="p-5 space-y-1.5 min-h-[220px]">
             {TERMINAL_LINES.map((line, i) => (
               <p
                 key={i}
-                ref={el => { linesRef.current[i] = el }}
-                className={`${line.color} opacity-0 text-xs leading-relaxed`}
+                className={`${line.color} animate-fade-in-up text-xs leading-relaxed`}
+                style={{ opacity: 0, animationDelay: `${line.delay}s` }}
               >
                 {line.text}
               </p>

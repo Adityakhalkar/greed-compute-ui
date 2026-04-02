@@ -1,10 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-
-gsap.registerPlugin(ScrollTrigger)
 
 const PRIMITIVES = [
   {
@@ -55,16 +51,17 @@ export function Primitives() {
 
   useEffect(() => {
     if (!rootRef.current) return
-    const cards = rootRef.current.querySelectorAll('[data-card]')
-    cards.forEach(card => {
-      gsap.fromTo(card,
-        { opacity: 0, y: 24 },
-        {
-          opacity: 1, y: 0, duration: 0.5, ease: 'power2.out',
-          scrollTrigger: { trigger: card, start: 'top 85%' },
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          entry.target.setAttribute('data-visible', '')
+          observer.disconnect()
         }
-      )
-    })
+      },
+      { threshold: 0, rootMargin: '0px 0px -15% 0px' }
+    )
+    observer.observe(rootRef.current)
+    return () => observer.disconnect()
   }, [])
 
   return (
@@ -76,8 +73,8 @@ export function Primitives() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {PRIMITIVES.map(p => (
-            <div key={p.name} data-card className="opacity-0 border border-border bg-surface p-6 flex flex-col gap-4">
+          {PRIMITIVES.map((p, i) => (
+            <div key={p.name} data-card className="border border-border bg-surface p-6 flex flex-col gap-4" style={{ transitionDelay: `${i * 0.1}s` }}>
               <div>
                 <div className="flex items-baseline justify-between mb-2">
                   <p className="text-sm font-semibold text-text-primary">{p.name}</p>

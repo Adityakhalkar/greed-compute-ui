@@ -67,6 +67,27 @@ body {
 .token-function { color: #88C8F0; }
 .token-punct    { color: #888884; }
 
+/* Fade-in-up animation for hero terminal lines */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out forwards;
+}
+
+/* Scroll-reveal for stats and primitives */
+[data-stat], [data-card] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+[data-visible] [data-stat],
+[data-visible] [data-card] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

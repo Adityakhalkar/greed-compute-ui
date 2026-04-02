@@ -14,8 +14,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
+  // Allow OAuth callback through — dashboard will set the cookie
+  const isOAuthCallback = pathname === '/dashboard' && req.nextUrl.searchParams.has('key')
+
   // Unauthenticated users visiting protected routes → send to login
-  if (!hasSession && AUTH_ROUTES.some(r => pathname.startsWith(r))) {
+  if (!hasSession && !isOAuthCallback && AUTH_ROUTES.some(r => pathname.startsWith(r))) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 

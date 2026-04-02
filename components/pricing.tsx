@@ -18,7 +18,7 @@ const PLANS = [
       'Community support',
     ],
     cta: 'Get API key',
-    href: 'mailto:hello@deep-ml.com?subject=greed-compute free key',
+    href: '/login',
     accent: false,
   },
   {
@@ -36,7 +36,7 @@ const PLANS = [
       'Email support',
     ],
     cta: 'Upgrade to Pro',
-    href: '/upgrade',
+    href: '/login',
     accent: true,
   },
   {

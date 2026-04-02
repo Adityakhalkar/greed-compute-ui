@@ -3,10 +3,10 @@
 import { useEffect, useRef } from 'react'
 
 const STATS = [
-  { value: '500×', label: 'faster warm starts vs cold-spawning', sub: 'median fork latency: 80ms' },
-  { value: '<100ms', label: 'session fork from checkpoint', sub: 'p99 across all templates' },
-  { value: '∞', label: 'parallel workers per checkpoint', sub: 'fork as many as you need' },
-  { value: '0', label: 'cold starts', sub: 'sessions stay warm between runs' },
+  { value: '47ms', label: 'session creation', sub: 'warm pool, zero cold starts' },
+  { value: '80ms', label: 'fork 50 workers', sub: 'from a single checkpoint' },
+  { value: '12ms', label: 'checkpoint save', sub: 'full interpreter snapshot' },
+  { value: '99.9%', label: 'uptime SLA', sub: 'production-grade infra' },
 ]
 
 export function Stats() {

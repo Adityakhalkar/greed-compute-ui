@@ -1,20 +1,40 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
-const TERMINAL_LINES = [
-  { delay: 0,    text: '$ python setup.py',            color: 'text-text-secondary' },
-  { delay: 0.4,  text: '  importing torch... (12.3s)',  color: 'text-text-tertiary' },
-  { delay: 0.8,  text: '  loading model... (8.1s)',     color: 'text-text-tertiary' },
-  { delay: 1.2,  text: '  ready.',                      color: 'text-accent' },
-  { delay: 1.6,  text: '$ greed checkpoint save base',  color: 'text-text-secondary' },
-  { delay: 2.0,  text: '  checkpoint: a3f9c2b1',        color: 'text-accent' },
-  { delay: 2.4,  text: '$ greed fork a3f9c2b1 --n 50',  color: 'text-text-secondary' },
-  { delay: 2.8,  text: '  50 workers ready  (0.08s) ▋', color: 'text-accent' },
-]
+const CODE = `import requests
+
+API = "https://compute.deep-ml.com/v1"
+KEY = {"X-API-Key": "gc-your-key"}
+
+# Create a session — Python stays warm between calls
+s = requests.post(f"{API}/session/create",
+    headers=KEY, json={"template": "data-science"}).json()
+
+# Execute code — state persists
+requests.post(f"{API}/session/{s['session_id']}/execute",
+    headers=KEY, json={"code": "import torch; model = load('llama-70b')"})
+
+# Checkpoint — snapshot the interpreter
+ckpt = requests.post(f"{API}/session/{s['session_id']}/checkpoint",
+    headers=KEY, json={"name": "model-loaded"}).json()
+
+# Fork — 50 workers with model pre-loaded, in <100ms
+requests.post(f"{API}/checkpoints/fork",
+    headers=KEY, json={"checkpoint_id": ckpt["checkpoint_id"], "count": 50})`
 
 export function Hero() {
+  const [copied, setCopied] = useState(false)
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(CODE)
+    setCopied(true)
+    toast.success('Copied to clipboard')
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <section className="px-6 py-24 md:px-12 lg:px-24 border-b border-border">
@@ -68,30 +88,30 @@ export function Hero() {
           </motion.div>
         </div>
 
-        {/* Terminal */}
+        {/* Code snippet */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="bg-surface border border-border font-mono text-sm"
         >
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-            <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-            <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-            <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-            <span className="ml-2 text-xs text-text-tertiary">greed-compute</span>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+              <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+              <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+              <span className="ml-2 text-xs text-text-tertiary">quickstart.py</span>
+            </div>
+            <button
+              onClick={copyCode}
+              className="text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+            >
+              {copied ? 'copied!' : 'copy'}
+            </button>
           </div>
-          <div className="p-5 space-y-1.5 min-h-[220px]">
-            {TERMINAL_LINES.map((line, i) => (
-              <p
-                key={i}
-                className={`${line.color} animate-fade-in-up text-xs leading-relaxed`}
-                style={{ opacity: 0, animationDelay: `${line.delay}s` }}
-              >
-                {line.text}
-              </p>
-            ))}
-          </div>
+          <pre className="p-5 overflow-x-auto text-xs leading-relaxed max-h-[380px] overflow-y-auto">
+            <code className="text-text-secondary">{CODE}</code>
+          </pre>
         </motion.div>
       </div>
     </section>

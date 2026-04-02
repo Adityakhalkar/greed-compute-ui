@@ -4,11 +4,10 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://compute.deep-ml.com',
   },
   async rewrites() {
-    const backend = process.env.NEXT_PUBLIC_API_URL || 'https://compute.deep-ml.com'
     return [
       {
-        source: '/api/v1/:path*',
-        destination: `${backend}/v1/:path*`,
+        source: '/api/:path*',
+        destination: 'https://compute.deep-ml.com/:path*',
       },
     ]
   },

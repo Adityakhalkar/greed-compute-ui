@@ -20,15 +20,9 @@ export default function Playground() {
   const [code, setCode] = useState(STARTER_CODE)
   const [output, setOutput] = useState<OutputLine[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [apiKey, setApiKey] = useState<string>('')
   const [running, setRunning] = useState(false)
   const [template, setTemplate] = useState<string>('blank')
   const outputRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const stored = localStorage.getItem('greed_api_key')
-    if (stored) setApiKey(stored)
-  }, [])
 
   useEffect(() => {
     if (outputRef.current) {
@@ -41,13 +35,9 @@ export default function Playground() {
   }
 
   const createSession = async () => {
-    if (!apiKey) {
-      addOutput({ type: 'error', content: 'Set your API key first' })
-      return
-    }
     addOutput({ type: 'system', content: `Creating ${template} session...` })
     try {
-      const session = await api.createSession(apiKey, { template })
+      const session = await api.createSession({ template })
       setSessionId(session.session_id)
       addOutput({ type: 'system', content: `Session ready: ${session.session_id.slice(0, 8)}... (template: ${session.template || 'blank'})` })
     } catch (e) {
@@ -56,12 +46,11 @@ export default function Playground() {
   }
 
   const runCode = async () => {
-    if (!apiKey) { addOutput({ type: 'error', content: 'Enter API key first' }); return }
     let sid = sessionId
     if (!sid) {
       addOutput({ type: 'system', content: 'No session — creating one...' })
       try {
-        const session = await api.createSession(apiKey, { template })
+        const session = await api.createSession({ template })
         sid = session.session_id
         setSessionId(sid)
         addOutput({ type: 'system', content: `Session: ${sid.slice(0, 8)}...` })
@@ -73,7 +62,7 @@ export default function Playground() {
     setRunning(true)
     addOutput({ type: 'system', content: `Running...` })
     try {
-      const result = await api.execute(apiKey, sid, code)
+      const result = await api.execute(sid, code)
       if (result.stdout) {
         result.stdout.split('\n').filter(Boolean).forEach((line: string) => {
           addOutput({ type: 'stdout', content: line })
@@ -111,17 +100,6 @@ export default function Playground() {
             <option value="machine-learning">machine-learning</option>
             <option value="web-scraping">web-scraping</option>
           </select>
-
-          <input
-            type="password"
-            placeholder="API key: gc-..."
-            value={apiKey}
-            onChange={e => {
-              setApiKey(e.target.value)
-              localStorage.setItem('greed_api_key', e.target.value)
-            }}
-            className="flex-1 max-w-xs bg-background border border-border px-2 py-1 text-xs font-mono text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent"
-          />
 
           <div className="flex items-center gap-1 ml-auto">
             {sessionId && (

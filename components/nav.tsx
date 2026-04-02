@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { session } from '@/lib/api'
 
 const NAV_LINKS = [
   { href: '/#api',       label: 'API'        },
@@ -13,14 +14,16 @@ const NAV_LINKS = [
 
 export function Nav() {
   const pathname = usePathname()
-  const [hasKey, setHasKey] = useState(false)
+  const [authed, setAuthed] = useState(false)
 
   useEffect(() => {
-    const check = () => setHasKey(!!localStorage.getItem('greed_api_key'))
-    check()
-    window.addEventListener('storage', check)
-    return () => window.removeEventListener('storage', check)
+    session.check().then(s => setAuthed(s.authenticated))
   }, [pathname])
+
+  const signOut = async () => {
+    await session.clear()
+    window.location.href = '/login'
+  }
 
   return (
     <nav className="border-b border-border sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
@@ -48,13 +51,21 @@ export function Nav() {
             </Link>
           ))}
 
-          {hasKey ? (
-            <Link
-              href="/dashboard"
-              className="px-3 py-1.5 text-xs font-mono border border-border text-text-secondary hover:border-border-strong hover:text-text-primary transition-colors"
-            >
-              Dashboard
-            </Link>
+          {authed ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="px-3 py-1.5 text-xs font-mono border border-border text-text-secondary hover:border-border-strong hover:text-text-primary transition-colors"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={signOut}
+                className="text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
+              >
+                Sign out
+              </button>
+            </>
           ) : (
             <Link
               href="/login"

@@ -1,14 +1,15 @@
-// Use local rewrite proxy to avoid CORS preflight issues
-const BASE_URL = '/api'
+// All requests go through /api/* which the server-side proxy route
+// handles — it reads the httpOnly session cookie and injects X-API-Key.
+// No API key is ever exposed to client-side JavaScript.
 
-async function request<T>(path: string, apiKey: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(`/api${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
       ...options.headers,
     },
+    credentials: 'same-origin',
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
@@ -18,57 +19,71 @@ async function request<T>(path: string, apiKey: string, options: RequestInit = {
 }
 
 export const api = {
-  createSession: (apiKey: string, body: { template?: string }) =>
-    request<{ session_id: string; template?: string }>('/v1/session/create', apiKey, {
+  createSession: (body: { template?: string }) =>
+    request<{ session_id: string; template?: string }>('/v1/session/create', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
 
-  execute: (apiKey: string, sessionId: string, code: string) =>
+  execute: (sessionId: string, code: string) =>
     request<{ stdout?: string; result?: unknown; error?: string }>(
       `/v1/session/${sessionId}/execute`,
-      apiKey,
-      { method: 'POST', body: JSON.stringify({ code }) }
+      { method: 'POST', body: JSON.stringify({ code }) },
     ),
 
-  getSession: (apiKey: string, sessionId: string) =>
+  getSession: (sessionId: string) =>
     request<{ session_id: string; created_at: number; last_active: number; template?: string }>(
       `/v1/session/${sessionId}`,
-      apiKey
     ),
 
-  deleteSession: (apiKey: string, sessionId: string) =>
-    request<{ deleted: boolean }>(`/v1/session/${sessionId}`, apiKey, { method: 'DELETE' }),
+  deleteSession: (sessionId: string) =>
+    request<{ deleted: boolean }>(`/v1/session/${sessionId}`, { method: 'DELETE' }),
 
-  checkpoint: (apiKey: string, sessionId: string, name: string) =>
+  checkpoint: (sessionId: string, name: string) =>
     request<{ checkpoint_id: string; name: string }>(
       `/v1/session/${sessionId}/checkpoint`,
-      apiKey,
-      { method: 'POST', body: JSON.stringify({ name }) }
+      { method: 'POST', body: JSON.stringify({ name }) },
     ),
 
-  restoreCheckpoint: (apiKey: string, sessionId: string, checkpointId: string) =>
-    request<{ session_id: string }>(`/v1/session/${sessionId}/restore/${checkpointId}`, apiKey, {
+  restoreCheckpoint: (sessionId: string, checkpointId: string) =>
+    request<{ session_id: string }>(`/v1/session/${sessionId}/restore/${checkpointId}`, {
       method: 'POST',
     }),
 
-  listCheckpoints: (apiKey: string) =>
+  listCheckpoints: () =>
     request<{ checkpoint_id: string; name: string; created_at: number; size_bytes: number }[]>(
       '/v1/checkpoints',
-      apiKey
     ),
 
-  forkCheckpoint: (apiKey: string, checkpointId: string, count: number) =>
-    request<{ session_ids: string[] }>('/v1/checkpoints/fork', apiKey, {
+  forkCheckpoint: (checkpointId: string, count: number) =>
+    request<{ session_ids: string[] }>('/v1/checkpoints/fork', {
       method: 'POST',
       body: JSON.stringify({ checkpoint_id: checkpointId, count }),
     }),
 
-  getUsage: (apiKey: string) =>
+  getUsage: () =>
     request<{
       plan: string
       requests: { used: number; limit: number; remaining: number }
       storage: { used_mb: number; limit_mb: number; remaining_mb: number }
       checkpoint_retention_days: number
-    }>('/v1/usage', apiKey),
+    }>('/v1/usage'),
+}
+
+// Session management — used by dashboard on OAuth callback and sign-out
+export const session = {
+  set: (key: string, login: string) =>
+    fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, login }),
+      credentials: 'same-origin',
+    }),
+
+  check: () =>
+    fetch('/api/auth/session', { credentials: 'same-origin' })
+      .then(r => r.json() as Promise<{ authenticated: boolean; login: string | null }>),
+
+  clear: () =>
+    fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' }),
 }

@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { Nav } from '@/components/nav'
-import { api } from '@/lib/api'
+import { api, session } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 interface UsageData {
@@ -27,45 +27,43 @@ function CopyIcon() {
 
 function DashboardContent() {
   const searchParams = useSearchParams()
-  const [apiKey, setApiKey]       = useState<string>('')
   const [login, setLogin]         = useState<string>('')
   const [newKey, setNewKey]       = useState<string | null>(null)
   const [keyCopied, setKeyCopied] = useState(false)
   const [usage, setUsage]         = useState<UsageData | null>(null)
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState<string | null>(null)
+  const [loading, setLoading]     = useState(true)
+  const [ready, setReady]         = useState(false)
 
+  // Handle OAuth callback params → store in httpOnly cookie, then clean URL
   useEffect(() => {
     const urlKey   = searchParams.get('key')
     const urlLogin = searchParams.get('login')
 
     if (urlKey) {
-      const isNew = !localStorage.getItem('greed_api_key')
-      localStorage.setItem('greed_api_key', urlKey)
-      setApiKey(urlKey)
-      if (isNew) setNewKey(urlKey)
-      window.history.replaceState({}, '', '/dashboard')
+      session.set(urlKey, urlLogin || '').then(async () => {
+        setLogin(urlLogin || '')
+        setNewKey(urlKey)
+        setReady(true)
+        window.history.replaceState({}, '', '/dashboard')
+      })
     } else {
-      const stored = localStorage.getItem('greed_api_key')
-      if (stored) setApiKey(stored)
-    }
-
-    if (urlLogin) {
-      localStorage.setItem('greed_login', urlLogin)
-      setLogin(urlLogin)
-    } else {
-      setLogin(localStorage.getItem('greed_login') || '')
+      // No URL params — check existing session
+      session.check().then(s => {
+        setLogin(s.login || '')
+        setReady(true)
+      })
     }
   }, [searchParams])
 
+  // Fetch usage once session is ready
   useEffect(() => {
-    if (!apiKey) return
+    if (!ready) return
     setLoading(true)
-    api.getUsage(apiKey)
+    api.getUsage()
       .then(setUsage)
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [apiKey])
+  }, [ready])
 
   const copyKey = (key: string) => {
     navigator.clipboard.writeText(key)
@@ -74,22 +72,18 @@ function DashboardContent() {
     setTimeout(() => setKeyCopied(false), 2000)
   }
 
-  const signOut = () => {
-    localStorage.removeItem('greed_api_key')
-    localStorage.removeItem('greed_login')
+  const signOut = async () => {
+    await session.clear()
     window.location.href = '/login'
   }
 
   const storagePercent = usage ? Math.round((usage.storage.used_mb / usage.storage.limit_mb) * 100) : 0
   const requestPercent = usage ? Math.round((usage.requests.used / usage.requests.limit) * 100) : 0
 
-  if (!apiKey) {
+  if (!ready) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-24 text-center">
-        <p className="text-text-secondary text-sm mb-4">You're not signed in.</p>
-        <a href="/login" className="text-accent text-sm hover:text-accent-dim transition-colors">
-          Sign in with GitHub →
-        </a>
+        <p className="text-text-tertiary text-sm">Loading...</p>
       </div>
     )
   }
@@ -138,7 +132,6 @@ function DashboardContent() {
         )}
       </AnimatePresence>
 
-      {error && <div className="border border-error bg-surface px-4 py-3 text-sm text-error mb-8">{error}</div>}
       {loading && <p className="text-text-tertiary text-sm">Loading...</p>}
 
       {usage && (

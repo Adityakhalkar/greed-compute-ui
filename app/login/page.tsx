@@ -1,11 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Nav } from '@/components/nav'
 
-// GitHub mark SVG — inline, no lucide
 function GitHubMark({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -15,15 +12,8 @@ function GitHubMark({ className }: { className?: string }) {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://compute.deep-ml.com'
   const authUrl = `${apiBase}/v1/auth/github`
-
-  useEffect(() => {
-    if (localStorage.getItem('greed_api_key')) {
-      router.replace('/dashboard')
-    }
-  }, [router])
 
   return (
     <main className="min-h-screen flex flex-col">

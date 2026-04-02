@@ -63,7 +63,7 @@ function DashboardContent() {
     setLoading(true)
     api.getUsage(apiKey)
       .then(setUsage)
-      .catch(() => setError('Could not load usage — check your key'))
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [apiKey])
 

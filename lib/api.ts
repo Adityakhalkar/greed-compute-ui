@@ -1,4 +1,5 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://compute.deep-ml.com'
+// Use local rewrite proxy to avoid CORS preflight issues
+const BASE_URL = '/api'
 
 async function request<T>(path: string, apiKey: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {

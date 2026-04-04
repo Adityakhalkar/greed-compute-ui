@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Nav } from '@/components/nav'
-import { Footer } from '@/components/footer'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -71,14 +70,33 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 export default function DocsPage() {
   const [activeSection, setActiveSection] = useState('quickstart')
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // Track active section on scroll
+  useEffect(() => {
+    const container = contentRef.current
+    if (!container) return
+    const handleScroll = () => {
+      const ids = SECTIONS.map(s => s.id)
+      for (let i = ids.length - 1; i >= 0; i--) {
+        const el = document.getElementById(ids[i])
+        if (el && el.getBoundingClientRect().top < 150) {
+          setActiveSection(ids[i])
+          break
+        }
+      }
+    }
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
-    <main className="min-h-screen">
+    <main className="h-screen flex flex-col">
       <Nav />
-      <div className="mx-auto max-w-7xl px-6 md:px-12 py-16">
-        <div className="flex gap-12">
-          {/* Sidebar */}
-          <nav className="hidden lg:block w-48 shrink-0 sticky top-20 self-start">
+      <div className="flex-1 flex overflow-hidden">
+        <div className="mx-auto max-w-7xl w-full px-6 md:px-12 flex gap-12">
+          {/* Sidebar — fixed, not scrollable */}
+          <nav className="hidden lg:block w-48 shrink-0 py-16">
             <p className="text-xs tracking-widest uppercase text-text-tertiary mb-4 font-mono">Documentation</p>
             <ul className="space-y-1">
               {SECTIONS.map(s => (
@@ -98,8 +116,8 @@ export default function DocsPage() {
             </ul>
           </nav>
 
-          {/* Content */}
-          <div className="flex-1 min-w-0">
+          {/* Content — scrollable */}
+          <div ref={contentRef} className="flex-1 min-w-0 overflow-y-auto py-16">
             <div className="mb-12">
               <p className="text-xs tracking-widest uppercase text-text-tertiary mb-3 font-mono">API Reference</p>
               <h1 className="text-4xl font-semibold text-text-primary mb-4">Documentation</h1>
@@ -449,7 +467,6 @@ curl -H "X-API-Key: gc_your_key_here" ${BASE}/v1/health`}</Code>
           </div>
         </div>
       </div>
-      <Footer />
     </main>
   )
 }

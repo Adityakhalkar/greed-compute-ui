@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { session } from '@/lib/api'
 
 const NAV_LINKS = [
-  { href: '/#api',       label: 'API'        },
+  { href: '/docs',       label: 'Docs'       },
   { href: '/#pricing',   label: 'Pricing'    },
   { href: '/playground', label: 'Playground' },
 ]

@@ -22,8 +22,8 @@ export default function Home() {
               'Stateful Python execution engine for AI agents. Checkpoint interpreter state, fork N parallel workers, zero cold starts.',
             url: 'https://greed-compute-ui.vercel.app',
             offers: [
-              { '@type': 'Offer', price: '0', priceCurrency: 'USD', name: 'Free' },
-              { '@type': 'Offer', price: '29', priceCurrency: 'USD', name: 'Pro' },
+              { '@type': 'Offer', price: '0', priceCurrency: 'USD', name: 'Free — 500 executions/day' },
+              { '@type': 'Offer', price: '0.001', priceCurrency: 'USD', name: 'Pay as you go — per execution' },
             ],
           }),
         }}

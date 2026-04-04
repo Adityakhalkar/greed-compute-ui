@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -10,34 +11,37 @@ const PLANS = [
     period: 'forever',
     description: 'Get started. No credit card.',
     features: [
-      '100 executions / day',
-      '3 sessions max',
+      '500 executions / day',
+      '3 concurrent sessions',
       '50 MB checkpoint storage',
       '1 day retention',
       'Blank template only',
-      'Community support',
+      '5 fork workers max',
     ],
     cta: 'Get API key',
     href: '/login',
     accent: false,
+    checkout: false,
   },
   {
-    name: 'Pro',
-    price: '$29',
-    period: '/ month',
-    description: 'For builders shipping production agents.',
+    name: 'Pay as you go',
+    price: '$0.001',
+    period: '/ execution',
+    description: '500 free daily. Pay only for what you use.',
     features: [
-      'Unlimited executions',
-      '50 sessions max',
+      '500 free executions / day',
+      '$0.001 per execution after (= $1 / 1,000)',
+      '50 concurrent sessions',
       '5 GB checkpoint storage',
       '30 day retention',
       'All templates (ML, data-science, scraping)',
       'Fork up to 50 workers',
-      'Email support',
+      '$0 monthly minimum',
     ],
-    cta: 'Upgrade to Pro',
-    href: '/login',
+    cta: 'Add payment method',
+    href: '#',
     accent: true,
+    checkout: true,
   },
   {
     name: 'Enterprise',
@@ -55,16 +59,50 @@ const PLANS = [
     cta: 'Talk to us',
     href: 'mailto:hello@deep-ml.com?subject=greed-compute enterprise',
     accent: false,
+    checkout: false,
   },
 ]
 
 export function Pricing() {
+  const [loading, setLoading] = useState(false)
+
+  const handleCheckout = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        credentials: 'same-origin',
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else if (data.error === 'Already subscribed') {
+        // Open billing portal instead
+        const portal = await fetch('/api/stripe/portal', {
+          method: 'POST',
+          credentials: 'same-origin',
+        })
+        const portalData = await portal.json()
+        if (portalData.url) window.location.href = portalData.url
+      } else if (data.error === 'Not authenticated') {
+        window.location.href = '/login'
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <section id="pricing" className="border-t border-border px-6 py-24 md:px-12 lg:px-24">
       <div className="mx-auto max-w-6xl">
         <div className="mb-12">
           <p className="text-xs tracking-widest uppercase text-text-tertiary mb-3 font-mono">Pricing</p>
-          <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">Simple. No surprises.</h2>
+          <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">Pay for what you use.</h2>
+          <p className="text-text-secondary mt-3 max-w-lg">
+            500 free executions every day. Add a payment method to unlock higher limits — charged per execution after the free tier.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -81,7 +119,7 @@ export function Pricing() {
               )}
             >
               {plan.accent && (
-                <div className="text-xs font-mono text-accent mb-4 tracking-widest uppercase">Most popular</div>
+                <div className="text-xs font-mono text-accent mb-4 tracking-widest uppercase">Recommended</div>
               )}
 
               <div className="mb-6">
@@ -102,17 +140,27 @@ export function Pricing() {
                 ))}
               </ul>
 
-              <a
-                href={plan.href}
-                className={cn(
-                  'block text-center py-2.5 text-xs font-medium transition-colors',
-                  plan.accent
-                    ? 'bg-accent text-background hover:bg-accent-dim'
-                    : 'border border-border text-text-secondary hover:border-border-strong hover:text-text-primary'
-                )}
-              >
-                {plan.cta}
-              </a>
+              {plan.checkout ? (
+                <button
+                  onClick={handleCheckout}
+                  disabled={loading}
+                  className="block text-center py-2.5 text-xs font-medium transition-colors bg-accent text-background hover:bg-accent-dim disabled:opacity-50"
+                >
+                  {loading ? 'Redirecting...' : plan.cta}
+                </button>
+              ) : (
+                <a
+                  href={plan.href}
+                  className={cn(
+                    'block text-center py-2.5 text-xs font-medium transition-colors',
+                    plan.accent
+                      ? 'bg-accent text-background hover:bg-accent-dim'
+                      : 'border border-border text-text-secondary hover:border-border-strong hover:text-text-primary'
+                  )}
+                >
+                  {plan.cta}
+                </a>
+              )}
             </motion.div>
           ))}
         </div>

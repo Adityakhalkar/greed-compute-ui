@@ -240,14 +240,17 @@ function DashboardContent() {
           <p className="text-sm font-medium text-text-primary mb-1 group-hover:text-accent transition-colors">Playground →</p>
           <p className="text-xs text-text-secondary">Run Python in your browser against a live session</p>
         </a>
-        <a href="/upgrade" className="border border-border bg-surface p-6 hover:border-border-strong transition-colors group">
-          <p className="text-sm font-medium text-text-primary mb-1 group-hover:text-accent transition-colors">
-            {isPaid ? 'Manage plan →' : 'Upgrade plan →'}
-          </p>
-          <p className="text-xs text-text-secondary">
-            {isPaid ? 'View billing, invoices, and subscription details' : 'More storage, higher rate limits, longer retention'}
-          </p>
-        </a>
+        {isPaid ? (
+          <button onClick={openBilling} className="border border-border bg-surface p-6 hover:border-border-strong transition-colors group text-left">
+            <p className="text-sm font-medium text-text-primary mb-1 group-hover:text-accent transition-colors">Manage plan →</p>
+            <p className="text-xs text-text-secondary">View billing, invoices, and subscription details</p>
+          </button>
+        ) : (
+          <a href="/upgrade" className="border border-border bg-surface p-6 hover:border-border-strong transition-colors group">
+            <p className="text-sm font-medium text-text-primary mb-1 group-hover:text-accent transition-colors">Upgrade plan →</p>
+            <p className="text-xs text-text-secondary">More storage, higher rate limits, longer retention</p>
+          </a>
+        )}
       </div>
     </div>
   )

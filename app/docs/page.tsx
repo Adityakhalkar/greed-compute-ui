@@ -121,8 +121,9 @@ export default function DocsPage() {
               <p className="text-xs tracking-widest uppercase text-text-tertiary mb-3 font-mono">API Reference</p>
               <h1 className="text-4xl font-semibold text-text-primary mb-4">Docs</h1>
               <p className="text-text-secondary max-w-xl">
-                Python that remembers. Sessions stay alive, state sticks around, and you can
-                fork 50 copies of a loaded model faster than your agent can say "importing torch."
+                Stateful Python execution for AI agents. Your agent creates a session, runs code in it, and the
+                variables are still there next time it calls. No cold starts. If you've ever watched an agent
+                re-import torch for the 50th time, you already know why this exists.
               </p>
               <p className="text-xs text-text-tertiary mt-3 font-mono">
                 Base URL: <code className="text-accent">{BASE}</code>
@@ -131,9 +132,11 @@ export default function DocsPage() {
 
             {/* Quickstart */}
             <Section id="quickstart" title="Quickstart">
-              <p className="mb-4">Three curls. That's it. You're running Python.</p>
+              <p className="mb-4">
+                You need three API calls to go from nothing to running Python. Genuinely, that's it.
+              </p>
 
-              <p className="text-xs text-text-tertiary font-mono mb-2">1. Spin up a session</p>
+              <p className="text-xs text-text-tertiary font-mono mb-2">1. create a session</p>
               <Code>{`curl -X POST ${BASE}/v1/session/create \\
   -H "X-API-Key: YOUR_KEY" \\
   -H "Content-Type: application/json" \\
@@ -141,7 +144,7 @@ export default function DocsPage() {
 
 # → {"session_id": "abc123...", "expires_at": "..."}`}</Code>
 
-              <p className="text-xs text-text-tertiary font-mono mb-2 mt-6">2. Run some code</p>
+              <p className="text-xs text-text-tertiary font-mono mb-2 mt-6">2. run code in it</p>
               <Code>{`curl -X POST ${BASE}/v1/session/SESSION_ID/execute \\
   -H "X-API-Key: YOUR_KEY" \\
   -H "Content-Type: application/json" \\
@@ -149,22 +152,22 @@ export default function DocsPage() {
 
 # → {"stdout": "", "result": "[0.12, -1.3, ...]", "duration_ms": 12}`}</Code>
 
-              <p className="text-xs text-text-tertiary font-mono mb-2 mt-6">3. Run more code. It remembers.</p>
+              <p className="text-xs text-text-tertiary font-mono mb-2 mt-6">3. run more code, state is still there</p>
               <Code>{`curl -X POST ${BASE}/v1/session/SESSION_ID/execute \\
   -H "X-API-Key: YOUR_KEY" \\
   -d '{"code": "x = 42"}'
 
-# ...five minutes later...
+# come back five minutes later
 
 curl -X POST ${BASE}/v1/session/SESSION_ID/execute \\
   -H "X-API-Key: YOUR_KEY" \\
   -d '{"code": "print(x)"}'
 
 # → {"stdout": "42", "duration_ms": 1}
-# x is still there. that's the whole point.`}</Code>
+# x is still there. numpy is still imported. nothing was re-loaded.`}</Code>
 
               <div className="mt-6 border border-border bg-surface p-4">
-                <p className="text-xs text-accent font-mono mb-2">Python SDK (cooking)</p>
+                <p className="text-xs text-accent font-mono mb-2">python sdk (cooking)</p>
                 <Code copyable={false}>{`import greed
 
 session = greed.Session(api_key="YOUR_KEY", template="data-science")
@@ -176,10 +179,9 @@ print(result.stdout)`}</Code>
             {/* Auth */}
             <Section id="auth" title="Auth">
               <p className="mb-4">
-                Slap an <code className="text-accent font-mono text-xs">X-API-Key</code> header on every request. That's your auth.
-              </p>
-              <p className="mb-4">
-                Don't have a key? <a href="/login" className="text-accent hover:text-accent-dim transition-colors">Sign in with GitHub</a>. Takes two seconds. We only read your username. Your repos are safe, promise.
+                Every request needs an <code className="text-accent font-mono text-xs">X-API-Key</code> header.
+                You get a key when you <a href="/login" className="text-accent hover:text-accent-dim transition-colors">sign in with GitHub</a>,
+                we only read your username and email, we don't touch your repos.
               </p>
 
               <Code>{`curl -H "X-API-Key: gc_your_key_here" ${BASE}/v1/health`}</Code>
@@ -215,18 +217,22 @@ print(result.stdout)`}</Code>
             {/* Sessions */}
             <Section id="sessions" title="Sessions">
               <p className="mb-4">
-                A session is a Python interpreter that doesn't forget. Variables, imports, that DataFrame you spent
-                30 seconds building? Still there next time you call execute. Like a Jupyter notebook, but for machines.
+                A session is basically a Python process that stays alive between your API calls. You import something,
+                define a variable, load a model, whatever. It's all still there the next time you call execute.
+                Your agents don't need to re-do setup work every single time anymore.
               </p>
 
               <Endpoint method="POST" path="/v1/session/create" auth>
-                <p>Spin up a fresh Python environment. Pick a template to get libraries pre-loaded, or go blank and install what you need.</p>
+                <p>
+                  Creates a new session. You can pick a template that comes with libraries pre-loaded (numpy, pandas, sklearn, etc)
+                  so your agent doesn't waste time on imports. Or go blank and install whatever you want.
+                </p>
                 <p className="text-xs text-text-tertiary font-mono mt-2">Request body:</p>
                 <Code>{`{
   "template": "data-science",     // blank | data-science | machine-learning | web-scraping
-  "ttl_seconds": 300,             // how long it lives (default: 120s)
-  "packages": ["requests"],       // pip install these before you get the session
-  "checkpoint_id": "ckpt_..."     // boot from a saved state
+  "ttl_seconds": 300,             // how long it stays alive (default: 120s)
+  "packages": ["requests"],       // pip install these before the session is ready
+  "checkpoint_id": "ckpt_..."     // start from a previously saved state
 }`}</Code>
                 <p className="text-xs text-text-tertiary font-mono mt-3">Response:</p>
                 <Code>{`{
@@ -238,20 +244,22 @@ print(result.stdout)`}</Code>
               </Endpoint>
 
               <Endpoint method="GET" path="/v1/session/{id}/status">
-                <p>Check if your session is still alive and how much time it has left.</p>
+                <p>Check how much TTL your session has left. Also shows how many calls it's handled.</p>
               </Endpoint>
 
               <Endpoint method="DELETE" path="/v1/session/{id}">
-                <p>Kill the session. Workspace gone. Clean slate.</p>
+                <p>Terminate the session and clean up its workspace. You'll stop getting billed for it immediately.</p>
               </Endpoint>
             </Section>
 
             {/* Execute */}
             <Section id="execute" title="Execute Code">
-              <p className="mb-4">The reason you're here.</p>
 
               <Endpoint method="POST" path="/v1/session/{id}/execute" auth>
-                <p>Send Python. Get results. State carries over between calls.</p>
+                <p>
+                  The main thing. Send Python code, get back stdout, the return value of the last expression, and any errors.
+                  If your code makes matplotlib plots, you get those back too as base64 PNGs.
+                </p>
                 <p className="text-xs text-text-tertiary font-mono mt-2">Request:</p>
                 <Code>{`{"code": "import numpy as np; np.mean([1, 2, 3])"}`}</Code>
                 <p className="text-xs text-text-tertiary font-mono mt-3">Response:</p>
@@ -264,16 +272,20 @@ print(result.stdout)`}</Code>
   "html": null        // rendered HTML if you return a DataFrame
 }`}</Code>
                 <p className="text-xs text-text-tertiary mt-3">
-                  Returns <code className="text-error">423</code> if the session is busy. One thing at a time. Be patient, or use async.
+                  You'll get a <code className="text-error">423</code> if the session is already running something.
+                  Sessions handle one execution at a time. If you need parallel work, that's what swarm is for.
                 </p>
               </Endpoint>
 
               <Endpoint method="POST" path="/v1/session/{id}/execute/stream" auth>
-                <p>Same thing, but you get output as it happens via SSE. Nice for anything that takes more than a blink.</p>
+                <p>
+                  Same as execute but streams output line by line via SSE. Useful when your code takes a while
+                  and you want to show progress instead of staring at a loading spinner.
+                </p>
               </Endpoint>
 
               <Endpoint method="POST" path="/v1/session/{id}/install">
-                <p>Need a package? Install it live. No need to restart anything.</p>
+                <p>Install pip packages into a running session without restarting it. The packages persist for the session's lifetime.</p>
                 <Code>{`{"packages": ["requests", "beautifulsoup4"]}`}</Code>
               </Endpoint>
             </Section>
@@ -281,56 +293,62 @@ print(result.stdout)`}</Code>
             {/* Checkpoints */}
             <Section id="checkpoints" title="Checkpoints">
               <p className="mb-4">
-                Think git, but for Python memory. Snapshot everything in the interpreter: variables, imports,
-                that 2GB model you just loaded. Restore it later, or fork it into 50 copies. This is the magic trick.
+                So you've loaded a model, imported your libraries, set up your data. That took 30 seconds.
+                Now you want 50 agents to start from that exact state. You could re-do the setup 50 times
+                (cooked) or you could checkpoint it once and restore it everywhere (not cooked).
+                Checkpoints snapshot the entire interpreter state, every variable, every import, everything.
               </p>
 
               <Endpoint method="POST" path="/v1/session/{id}/checkpoint" auth>
-                <p>Freeze the current state. Give it a name so you remember why you saved it.</p>
+                <p>Save the current state. Name it something useful so future-you knows what's in there.</p>
                 <Code>{`{"name": "model-loaded"}
 
 // → {"checkpoint_id": "ckpt_...", "name": "model-loaded", "size_bytes": 142000}`}</Code>
               </Endpoint>
 
               <Endpoint method="POST" path="/v1/session/{id}/restore/{checkpoint_id}" auth>
-                <p>Thaw a checkpoint into a running session. All your variables come back to life.</p>
+                <p>Load a saved checkpoint into a session. All the variables from when you saved it are back.</p>
                 <Code>{`// → {"restored": true, "vars": ["model", "tokenizer", "config"]}`}</Code>
               </Endpoint>
 
               <Endpoint method="GET" path="/v1/checkpoints" auth>
-                <p>See all your saved checkpoints.</p>
+                <p>List all your saved checkpoints with size and creation time.</p>
               </Endpoint>
 
               <Endpoint method="DELETE" path="/v1/checkpoints/{id}" auth>
-                <p>Delete a checkpoint. Free up the storage.</p>
+                <p>Delete a checkpoint and free up the storage it was using.</p>
               </Endpoint>
             </Section>
 
             {/* Swarm */}
             <Section id="swarm" title="Swarm">
               <p className="mb-4">
-                MapReduce for people who don't want to set up Spark.
-                Load your model once, clone the state to N workers, process data in parallel,
-                collect results. One API call.
+                This is where it gets fun. You give us setup code, a map function, a list of data partitions,
+                and optionally a reduce function. We run the setup once, clone that state to N workers,
+                each worker processes its partition, and we collect all the results. It's MapReduce
+                but you didn't have to provision a single server for it.
               </p>
 
               <Endpoint method="POST" path="/v1/swarm" auth>
-                <p>Launch the swarm. Each worker gets its own partition from the data array.</p>
+                <p>
+                  Launch a swarm. The template_code runs once and gets cloned to every worker, so you're not
+                  re-loading your model N times. Each worker gets one item from the data array as its partition variable.
+                </p>
                 <Code>{`{
-  "template_code": "import torch; model = load('llama')",  // run once, clone to all workers
+  "template_code": "import torch; model = load('llama')",  // runs once, cloned to all workers
   "map_fn": "result = model.predict(partition)",            // each worker runs this
-  "data": [                                                  // one item = one worker
+  "data": [                                                  // one item per worker
     {"batch": [1, 2, 3]},
     {"batch": [4, 5, 6]},
     {"batch": [7, 8, 9]}
   ],
-  "reduce_fn": "final = sum(r['score'] for r in results)",  // merge everything
-  "webhook_url": "https://your.app/callback"                 // ping me when done
+  "reduce_fn": "final = sum(r['score'] for r in results)",  // optional: combine results
+  "webhook_url": "https://your.app/callback"                 // optional: we'll POST when done
 }`}</Code>
               </Endpoint>
 
               <Endpoint method="GET" path="/v1/swarm/{id}" auth>
-                <p>Check how the swarm is doing. Who's done, who's still crunching.</p>
+                <p>Poll the swarm to see progress and get results once it's done.</p>
                 <Code>{`{
   "status": "done",
   "total_workers": 3,
@@ -347,12 +365,13 @@ print(result.stdout)`}</Code>
             {/* Workspaces */}
             <Section id="workspaces" title="Workspaces">
               <p className="mb-4">
-                Shared Python environments. Multiple API keys, same state. Your agent and
-                your teammate's agent, working on the same DataFrame. State auto-saves after every execution.
+                Workspaces are like sessions but persistent and shareable. Multiple API keys can execute code
+                in the same workspace, and they all see the same variables. State auto-saves after every execution
+                so nothing gets lost if the runtime shuts down.
               </p>
 
               <Endpoint method="POST" path="/v1/workspaces" auth>
-                <p>Create a workspace. You're the owner.</p>
+                <p>Create a new workspace. You become the owner.</p>
                 <Code>{`{"name": "team-analysis"}
 // → {"id": "ws_...", "name": "team-analysis", "live": false}`}</Code>
               </Endpoint>
@@ -362,67 +381,72 @@ print(result.stdout)`}</Code>
               </Endpoint>
 
               <Endpoint method="POST" path="/v1/workspaces/{id}/invite" auth>
-                <p>Let someone else in. Owner only.</p>
+                <p>Give another API key access to this workspace. Only the owner can do this.</p>
                 <Code>{`{"api_key": "gc_their_key"}`}</Code>
               </Endpoint>
 
               <Endpoint method="GET" path="/v1/workspaces" auth>
-                <p>List your workspaces.</p>
+                <p>List all workspaces you own or have been invited to.</p>
               </Endpoint>
 
               <Endpoint method="DELETE" path="/v1/workspaces/{id}" auth>
-                <p>Nuke it. Runtime killed, checkpoint deleted, gone.</p>
+                <p>Delete the workspace entirely. Kills the runtime, deletes the saved state, removes all members. Owner only.</p>
               </Endpoint>
             </Section>
 
             {/* Files */}
             <Section id="files" title="Files">
-              <p className="mb-4">Upload data into a session, download results out. Base64 encoded because HTTP.</p>
+              <p className="mb-4">
+                Sometimes your code needs input files, or it produces output files you want to grab.
+                Upload and download are both base64 encoded because that's just how you send binary over JSON.
+              </p>
 
               <Endpoint method="POST" path="/v1/session/{id}/files">
-                <p>Push a file into the session's workspace. Your code can read it at the filename you give.</p>
+                <p>Upload a file to the session's workspace. Your code can then read it normally by filename.</p>
                 <Code>{`{"filename": "data.csv", "content": "base64_encoded_content"}`}</Code>
               </Endpoint>
 
               <Endpoint method="GET" path="/v1/session/{id}/output/{filename}">
-                <p>Pull a file out. Whatever your code wrote to disk, you can grab it here.</p>
+                <p>Download a file that your code wrote to disk during execution.</p>
               </Endpoint>
             </Section>
 
             {/* Async */}
             <Section id="async" title="Async Jobs">
               <p className="mb-4">
-                Some code takes a while. Training loops, heavy scraping, that sort of thing.
-                Queue it up, go do something else, come back for the results. Or just give us a webhook and we'll ping you.
+                Not everything finishes in milliseconds. If you're training a model or doing something heavy,
+                you can queue it as an async job. You get a job ID back immediately, and you can either poll
+                for the result or give us a webhook URL and we'll let you know when it's done.
               </p>
 
               <Endpoint method="POST" path="/v1/session/{id}/execute/async" auth>
-                <p>Fire and forget. Returns a job ID immediately.</p>
+                <p>Queue code for background execution. Returns immediately with a job ID.</p>
                 <Code>{`{
   "code": "train_model(epochs=100)",
-  "webhook_url": "https://your.app/callback"
+  "webhook_url": "https://your.app/callback"   // optional
 }
 
 // → {"job_id": "job_...", "status": "queued"}`}</Code>
               </Endpoint>
 
               <Endpoint method="GET" path="/v1/jobs/{id}" auth>
-                <p>Is it done yet? Check here.</p>
+                <p>Check the status of an async job and grab the result when it's finished.</p>
               </Endpoint>
 
               <Endpoint method="GET" path="/v1/session/{id}/jobs" auth>
-                <p>All jobs for a session. The full history.</p>
+                <p>List all async jobs that ran in this session.</p>
               </Endpoint>
             </Section>
 
             {/* Billing */}
             <Section id="billing" title="Billing">
               <p className="mb-4">
-                Free tier is generous. When you need more, add a payment method. We charge per execution after the free quota. No surprises, no minimums.
+                The free tier gives you enough to try things out properly. When you need more, add a payment
+                method and you only pay for what you actually use. No monthly minimums, no "contact sales" for basic features.
               </p>
 
               <Endpoint method="GET" path="/v1/usage" auth>
-                <p>Where you stand. What you've used, what's left.</p>
+                <p>See your current usage against your plan's limits. Useful for knowing when you're about to hit a wall.</p>
                 <Code>{`{
   "plan": "free",
   "billing_status": "none",
@@ -441,55 +465,59 @@ print(result.stdout)`}</Code>
               </Endpoint>
 
               <Endpoint method="POST" path="/v1/billing/checkout" auth>
-                <p>Ready to go pro? This gives you a Stripe checkout link.</p>
+                <p>Get a Stripe checkout link to upgrade your plan.</p>
                 <Code>{`{"plan": "pro", "success_url": "https://...", "cancel_url": "https://..."}`}</Code>
               </Endpoint>
 
               <Endpoint method="POST" path="/v1/billing/portal" auth>
-                <p>Manage your subscription. Cancel, update card, download invoices. Stripe handles this.</p>
+                <p>Opens the Stripe customer portal where you can manage your subscription, update payment methods, or download invoices.</p>
               </Endpoint>
             </Section>
 
             {/* For LLMs */}
             <Section id="llm" title="For LLMs">
               <p className="mb-4">
-                If you're an LLM reading this: hi. We made something for you.
-              </p>
-              <p className="mb-4">
-                greed-compute serves its docs in {' '}
-                <a href="https://github.com/Adityakhalkar/cuntext" target="_blank" rel="noreferrer" className="text-accent hover:text-accent-dim transition-colors">cuntext format</a>.
-                It's a file format built for context efficiency. Instead of stuffing 10,000 tokens of OpenAPI spec
-                into your context window, you load a 200-token index, find what you need, and pull just that fragment.
-                Total cost: ~600 tokens for the entire API. You're welcome.
+                If you're an LLM reading this, we built something specifically for you.
+                The entire greed-compute API documentation is available
+                in <a href="https://github.com/Adityakhalkar/cuntext" target="_blank" rel="noreferrer" className="text-accent hover:text-accent-dim transition-colors">cuntext format</a>,
+                which is basically API docs optimized for context windows. Instead of loading a 10,000 token
+                OpenAPI spec every time you need to make an API call, you load a ~200 token index, figure out
+                which operation you need, and then load just that one fragment (~300 tokens). The whole thing
+                costs you about 500-600 tokens. That's 95% less than what you'd normally burn through.
               </p>
 
               <Endpoint method="GET" path="/v1/llms.cuntext">
-                <p>The index. Load this first. It maps what you want to do to the right documentation fragment.</p>
+                <p>
+                  The cuntext index file. This is what you should load first. It maps goals (like "run code" or
+                  "save a checkpoint") to specific documentation fragments that you load on demand.
+                </p>
                 <Code>{`curl ${BASE}/v1/llms.cuntext
 
-# ~200 tokens. Goals like "run-code", "checkpoint", "fork-workers"
-# each pointing to a fragment you can load on demand.`}</Code>
+# ~200 tokens. maps goals to fragments.
+# your context window will thank you.`}</Code>
               </Endpoint>
 
               <Endpoint method="GET" path="/v1/cuntext/fragments/{name}">
-                <p>Grab just the fragment you need. Each one is 100-400 tokens.</p>
-                <p className="text-xs text-text-tertiary font-mono mt-2">Fragments:</p>
+                <p>Load a specific documentation fragment. Each one covers one feature area in 100-400 tokens.</p>
+                <p className="text-xs text-text-tertiary font-mono mt-2">Available fragments:</p>
                 <ul className="text-xs text-text-secondary space-y-1 mt-1 font-mono">
-                  <li>exec.cuntext - sessions + code execution</li>
-                  <li>checkpoint.cuntext - save, restore, fork</li>
+                  <li>exec.cuntext - sessions and code execution</li>
+                  <li>checkpoint.cuntext - save, restore, fork state</li>
                   <li>swarm.cuntext - parallel MapReduce</li>
                   <li>workspace.cuntext - shared environments</li>
                   <li>billing.cuntext - plans and usage</li>
-                  <li>errors.cuntext - when things go wrong</li>
+                  <li>errors.cuntext - error codes and what to do about them</li>
                 </ul>
               </Endpoint>
 
               <div className="mt-6 border border-accent bg-surface p-4">
-                <p className="text-xs text-accent font-mono mb-2">The math</p>
+                <p className="text-xs text-accent font-mono mb-2">why cuntext though</p>
                 <p className="text-xs text-text-secondary leading-relaxed">
-                  OpenAPI spec: 3,000 to 15,000 tokens. Every single request.
-                  cuntext: ~200 token index + one 300 token fragment = ~500 tokens total.
-                  That's 95% less context burned. Your agent's wallet will thank you.
+                  An OpenAPI spec for this API would be somewhere around 5,000 to 15,000 tokens.
+                  Every single API call your agent makes, that's the tax it pays for knowing what endpoints exist.
+                  With cuntext, you load the index once (~200 tokens), find the goal you need, pull one fragment
+                  (~300 tokens), and you're done. About 500 tokens total. The rest of your context window
+                  can go towards actually doing useful work instead of re-reading documentation.
                 </p>
               </div>
             </Section>

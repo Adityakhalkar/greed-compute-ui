@@ -69,23 +69,23 @@ export function Pricing() {
   const handleCheckout = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/stripe/checkout', {
+      const res = await fetch('/api/v1/billing/checkout', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
+        body: JSON.stringify({
+          plan: 'pro',
+          success_url: `${window.location.origin}/dashboard?upgraded=true`,
+          cancel_url: `${window.location.origin}/upgrade`,
+        }),
       })
-      const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else if (data.error === 'Already subscribed') {
-        // Open billing portal instead
-        const portal = await fetch('/api/stripe/portal', {
-          method: 'POST',
-          credentials: 'same-origin',
-        })
-        const portalData = await portal.json()
-        if (portalData.url) window.location.href = portalData.url
-      } else if (data.error === 'Not authenticated') {
+      if (res.status === 401) {
         window.location.href = '/login'
+        return
+      }
+      const data = await res.json()
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url
       }
     } catch {
       // silently fail

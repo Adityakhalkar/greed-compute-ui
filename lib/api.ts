@@ -26,7 +26,7 @@ export const api = {
     }),
 
   execute: (sessionId: string, code: string) =>
-    request<{ stdout?: string; result?: unknown; error?: string }>(
+    request<{ stdout?: string; result?: unknown; error?: string; duration_ms?: number }>(
       `/v1/session/${sessionId}/execute`,
       { method: 'POST', body: JSON.stringify({ code }) },
     ),

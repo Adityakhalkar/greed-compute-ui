@@ -6,14 +6,17 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { Nav } from '@/components/nav'
-import { api, session } from '@/lib/api'
+import { session } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
-interface UsageData {
+interface BillingStatus {
   plan: string
-  requests: { used: number; limit: number; remaining: number }
-  storage: { used_mb: number; limit_mb: number; remaining_mb: number }
-  checkpoint_retention_days: number
+  login?: string
+  subscription?: {
+    id: string
+    status: string
+    current_period_end: number
+  }
 }
 
 function CopyIcon() {
@@ -58,13 +61,11 @@ function DashboardSkeleton() {
         </div>
         <SkeletonBlock className="h-4 w-16" />
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
         <StatCardSkeleton />
         <StatCardSkeleton />
         <StatCardSkeleton />
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <LinkCardSkeleton />
         <LinkCardSkeleton />
@@ -73,39 +74,32 @@ function DashboardSkeleton() {
   )
 }
 
-function UsageStatsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-      <StatCardSkeleton />
-      <StatCardSkeleton />
-      <StatCardSkeleton />
-    </div>
-  )
+const PLAN_LIMITS = {
+  free: { sessions: 3, executions: '500 / day', storage: '50 MB', retention: '1 day', workers: 5 },
+  'pay-as-you-go': { sessions: 50, executions: '500 free + $0.001 each', storage: '5 GB', retention: '30 days', workers: 50 },
 }
 
 function DashboardContent() {
   const searchParams = useSearchParams()
-  const [login, setLogin]         = useState<string>('')
-  const [newKey, setNewKey]       = useState<string | null>(null)
-  const [keyCopied, setKeyCopied] = useState(false)
-  const [usage, setUsage]         = useState<UsageData | null>(null)
-  const [loading, setLoading]     = useState(true)
-  const [ready, setReady]         = useState(false)
+  const [login, setLogin]           = useState<string>('')
+  const [newKey, setNewKey]         = useState<string | null>(null)
+  const [keyCopied, setKeyCopied]   = useState(false)
+  const [billing, setBilling]       = useState<BillingStatus | null>(null)
+  const [loading, setLoading]       = useState(true)
+  const [ready, setReady]           = useState(false)
 
-  // Handle OAuth callback params → store in httpOnly cookie, then clean URL
   useEffect(() => {
     const urlKey   = searchParams.get('key')
     const urlLogin = searchParams.get('login')
 
     if (urlKey) {
-      session.set(urlKey, urlLogin || '').then(async () => {
+      session.set(urlKey, urlLogin || '').then(() => {
         setLogin(urlLogin || '')
         setNewKey(urlKey)
         setReady(true)
         window.history.replaceState({}, '', '/dashboard')
       })
     } else {
-      // No URL params — check existing session
       session.check().then(s => {
         setLogin(s.login || '')
         setReady(true)
@@ -113,15 +107,24 @@ function DashboardContent() {
     }
   }, [searchParams])
 
-  // Fetch usage once session is ready
+  // Fetch billing status from Stripe
   useEffect(() => {
     if (!ready) return
     setLoading(true)
-    api.getUsage()
-      .then(setUsage)
-      .catch(() => {})
+    fetch('/api/stripe/status', { credentials: 'same-origin' })
+      .then(r => r.json())
+      .then(setBilling)
+      .catch(() => setBilling({ plan: 'free' }))
       .finally(() => setLoading(false))
   }, [ready])
+
+  // Clean up ?upgraded= param
+  useEffect(() => {
+    if (searchParams.get('upgraded')) {
+      toast.success('Payment method added — you\'re on pay-as-you-go!')
+      window.history.replaceState({}, '', '/dashboard')
+    }
+  }, [searchParams])
 
   const copyKey = (key: string) => {
     navigator.clipboard.writeText(key)
@@ -135,12 +138,17 @@ function DashboardContent() {
     window.location.href = '/login'
   }
 
-  const storagePercent = usage ? Math.round((usage.storage.used_mb / usage.storage.limit_mb) * 100) : 0
-  const requestPercent = usage ? Math.round((usage.requests.used / usage.requests.limit) * 100) : 0
-
-  if (!ready) {
-    return <DashboardSkeleton />
+  const openBilling = async () => {
+    const res = await fetch('/api/stripe/portal', { method: 'POST', credentials: 'same-origin' })
+    const data = await res.json()
+    if (data.url) window.location.href = data.url
   }
+
+  if (!ready) return <DashboardSkeleton />
+
+  const plan = billing?.plan || 'free'
+  const limits = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free
+  const isPaid = plan === 'pay-as-you-go'
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-16 md:px-12">
@@ -186,37 +194,43 @@ function DashboardContent() {
         )}
       </AnimatePresence>
 
-      {loading && !usage && <UsageStatsSkeleton />}
+      {loading && !billing && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+      )}
 
-      {usage && (
+      {billing && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
           <div className="border border-border bg-surface p-6">
             <p className="text-xs uppercase tracking-widest text-text-tertiary mb-2">Plan</p>
-            <p className="text-2xl font-semibold text-text-primary capitalize">{usage.plan}</p>
-            {usage.plan === 'free' && (
-              <a href="/upgrade" className="mt-3 inline-block text-xs text-accent hover:text-accent-dim transition-colors">Upgrade to Pro →</a>
+            <p className="text-2xl font-semibold text-text-primary capitalize">{plan.replace(/-/g, ' ')}</p>
+            {!isPaid && (
+              <a href="/upgrade" className="mt-3 inline-block text-xs text-accent hover:text-accent-dim transition-colors">
+                Add payment method →
+              </a>
+            )}
+            {isPaid && (
+              <button onClick={openBilling} className="mt-3 text-xs text-accent hover:text-accent-dim transition-colors">
+                Manage billing →
+              </button>
             )}
           </div>
           <div className="border border-border bg-surface p-6">
-            <p className="text-xs uppercase tracking-widest text-text-tertiary mb-2">Requests today</p>
-            <p className="text-2xl font-semibold text-text-primary tabular-nums">
-              {usage.requests.used}
-              <span className="text-text-tertiary text-base font-normal"> / {usage.requests.limit === 2147483647 ? '∞' : usage.requests.limit}</span>
+            <p className="text-xs uppercase tracking-widest text-text-tertiary mb-2">Executions</p>
+            <p className="text-lg font-semibold text-text-primary">{limits.executions}</p>
+            <p className="mt-2 text-xs text-text-tertiary">
+              {isPaid ? 'Metered billing' : 'Hard cap'}
             </p>
-            <div className="mt-3 h-1 bg-border-strong" role="progressbar" aria-valuenow={requestPercent} aria-valuemin={0} aria-valuemax={100}>
-              <div className={cn('h-full transition-all', requestPercent > 80 ? 'bg-error' : 'bg-accent')} style={{ width: `${Math.min(requestPercent, 100)}%` }} />
-            </div>
           </div>
           <div className="border border-border bg-surface p-6">
-            <p className="text-xs uppercase tracking-widest text-text-tertiary mb-2">Checkpoint storage</p>
-            <p className="text-2xl font-semibold text-text-primary tabular-nums">
-              {usage.storage.used_mb.toFixed(1)}
-              <span className="text-text-tertiary text-base font-normal"> / {usage.storage.limit_mb} MB</span>
-            </p>
-            <div className="mt-3 h-1 bg-border-strong" role="progressbar" aria-valuenow={storagePercent} aria-valuemin={0} aria-valuemax={100}>
-              <div className={cn('h-full transition-all', storagePercent > 80 ? 'bg-error' : 'bg-accent')} style={{ width: `${Math.min(storagePercent, 100)}%` }} />
+            <p className="text-xs uppercase tracking-widest text-text-tertiary mb-2">Limits</p>
+            <div className="space-y-1.5 text-xs text-text-secondary">
+              <p>{limits.sessions} sessions · {limits.workers} fork workers</p>
+              <p>{limits.storage} storage · {limits.retention} retention</p>
             </div>
-            <p className="mt-2 text-xs text-text-tertiary">Retention: {usage.checkpoint_retention_days} days</p>
           </div>
         </div>
       )}
@@ -227,8 +241,12 @@ function DashboardContent() {
           <p className="text-xs text-text-secondary">Run Python in your browser against a live session</p>
         </a>
         <a href="/upgrade" className="border border-border bg-surface p-6 hover:border-border-strong transition-colors group">
-          <p className="text-sm font-medium text-text-primary mb-1 group-hover:text-accent transition-colors">Upgrade plan →</p>
-          <p className="text-xs text-text-secondary">More storage, higher rate limits, longer retention</p>
+          <p className="text-sm font-medium text-text-primary mb-1 group-hover:text-accent transition-colors">
+            {isPaid ? 'Manage plan →' : 'Upgrade plan →'}
+          </p>
+          <p className="text-xs text-text-secondary">
+            {isPaid ? 'View billing, invoices, and subscription details' : 'More storage, higher rate limits, longer retention'}
+          </p>
         </a>
       </div>
     </div>

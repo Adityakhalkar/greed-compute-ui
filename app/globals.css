@@ -93,12 +93,14 @@ body {
   color: var(--accent);
   cursor: default;
   position: relative;
-}
-
-.burning-text:hover {
   background: url('/fire.gif') center bottom / cover no-repeat;
   background-clip: text;
   -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--accent);
+  transition: -webkit-text-fill-color 0.5s ease;
+}
+
+.burning-text:hover {
   -webkit-text-fill-color: transparent;
 }
 

@@ -5,10 +5,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
-const CODE = `# Without greed-compute: every tool call burns ~5,000 tokens on setup
-# With greed-compute: setup once, reuse forever
-
-import requests
+const CODE = `import requests
 
 API = "https://compute.deep-ml.com/v1"
 KEY = {"X-API-Key": "gc-your-key"}
@@ -25,8 +22,87 @@ requests.post(f"{API}/session/{s['session_id']}/execute",
 requests.post(f"{API}/session/{s['session_id']}/execute",
     headers=KEY, json={"code": "model.predict(new_data)"})`
 
+function highlightPython(code: string) {
+  return code.split('\n').map((line, i) => {
+    // Comments
+    if (line.trimStart().startsWith('#')) {
+      return <span key={i}><span className="token-comment">{line}</span>{'\n'}</span>
+    }
+
+    // Process the line token by token
+    const parts: React.ReactNode[] = []
+    let remaining = line
+    let partKey = 0
+
+    while (remaining.length > 0) {
+      let matched = false
+
+      // Strings (f-strings, regular strings)
+      const strMatch = remaining.match(/^(f?"[^"]*"|f?'[^']*')/)
+      if (strMatch) {
+        parts.push(<span key={partKey++} className="token-string">{strMatch[0]}</span>)
+        remaining = remaining.slice(strMatch[0].length)
+        matched = true
+        continue
+      }
+
+      // Keywords
+      const kwMatch = remaining.match(/^(import|from|as|def|class|return|if|else|for|in|with|try|except|raise|not|and|or|is|None|True|False)\b/)
+      if (kwMatch) {
+        parts.push(<span key={partKey++} className="token-keyword">{kwMatch[0]}</span>)
+        remaining = remaining.slice(kwMatch[0].length)
+        matched = true
+        continue
+      }
+
+      // Function calls
+      const fnMatch = remaining.match(/^([a-zA-Z_]\w*)\s*(?=\()/)
+      if (fnMatch) {
+        parts.push(<span key={partKey++} className="token-function">{fnMatch[1]}</span>)
+        remaining = remaining.slice(fnMatch[1].length)
+        matched = true
+        continue
+      }
+
+      // Numbers
+      const numMatch = remaining.match(/^\d+\.?\d*/)
+      if (numMatch) {
+        parts.push(<span key={partKey++} className="token-number">{numMatch[0]}</span>)
+        remaining = remaining.slice(numMatch[0].length)
+        matched = true
+        continue
+      }
+
+      // Punctuation
+      const punctMatch = remaining.match(/^[{}()\[\].,;:=+\-*/<>!@%&|^~]/)
+      if (punctMatch) {
+        parts.push(<span key={partKey++} className="token-punct">{punctMatch[0]}</span>)
+        remaining = remaining.slice(1)
+        matched = true
+        continue
+      }
+
+      if (!matched) {
+        // Regular text
+        const nextSpecial = remaining.search(/[#"'()\[\]{},.:;=+\-*/<>!@%&|^~\d\s]/)
+        if (nextSpecial <= 0) {
+          parts.push(<span key={partKey++} className="text-text-primary">{remaining}</span>)
+          remaining = ''
+        } else {
+          const chunk = remaining.slice(0, nextSpecial || 1)
+          parts.push(<span key={partKey++} className="text-text-primary">{chunk}</span>)
+          remaining = remaining.slice(chunk.length)
+        }
+      }
+    }
+
+    return <span key={i}>{parts}{'\n'}</span>
+  })
+}
+
 export function Hero() {
   const [copied, setCopied] = useState(false)
+  const highlightedCode = highlightPython(CODE)
 
   const copyCode = () => {
     navigator.clipboard.writeText(CODE)
@@ -56,21 +132,10 @@ export function Hero() {
             Your agents are<br />
             <span className="burning-text">burning</span> tokens.
           </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="text-text-secondary leading-relaxed mb-8 max-w-md"
-          >
-            Every time your agent runs code, it re-reads API docs, re-imports libraries,
-            re-explains what it already did. That's thousands of tokens wasted per call.
-            greed-compute gives agents stateful Python sessions, so they set up once and
-            just keep working.
-          </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
             className="flex flex-col sm:flex-row gap-3"
           >
             <Link
@@ -109,7 +174,7 @@ export function Hero() {
             </button>
           </div>
           <pre className="p-5 overflow-x-auto text-xs leading-relaxed max-h-[380px] overflow-y-auto">
-            <code className="text-text-secondary">{CODE}</code>
+            <code>{highlightedCode}</code>
           </pre>
         </motion.div>
       </div>

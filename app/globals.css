@@ -88,6 +88,38 @@ body {
   transform: translateY(0);
 }
 
+/* Fire text effect on hover */
+@keyframes fire-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 30%; }
+  100% { background-position: 0% 50%; }
+}
+
+.burning-text {
+  color: var(--accent);
+  transition: color 0.3s ease;
+  cursor: default;
+  position: relative;
+}
+
+.burning-text:hover {
+  background: linear-gradient(
+    0deg,
+    #ff4400 0%,
+    #ff6600 15%,
+    #ff8800 30%,
+    #ffaa00 45%,
+    #ffcc00 60%,
+    #ffee44 75%,
+    #ffffff 100%
+  );
+  background-size: 100% 300%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: fire-shift 1.5s ease infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

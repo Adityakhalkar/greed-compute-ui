@@ -54,7 +54,7 @@ export function Hero() {
             className="text-4xl md:text-5xl lg:text-6xl font-semibold text-text-primary leading-tight mb-6"
           >
             Your agents are<br />
-            <span className="text-accent">burning</span> tokens.
+            <span className="burning-text">burning</span> tokens.
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 12 }}

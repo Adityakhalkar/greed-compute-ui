@@ -5,26 +5,25 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
-const CODE = `import requests
+const CODE = `# Without greed-compute: every tool call burns ~5,000 tokens on setup
+# With greed-compute: setup once, reuse forever
+
+import requests
 
 API = "https://compute.deep-ml.com/v1"
 KEY = {"X-API-Key": "gc-your-key"}
 
-# Create a session — Python stays warm between calls
+# Session remembers everything between calls
 s = requests.post(f"{API}/session/create",
     headers=KEY, json={"template": "data-science"}).json()
 
-# Execute code — state persists
+# First call: agent imports and loads (happens once)
 requests.post(f"{API}/session/{s['session_id']}/execute",
     headers=KEY, json={"code": "import torch; model = load('llama-70b')"})
 
-# Checkpoint — snapshot the interpreter
-ckpt = requests.post(f"{API}/session/{s['session_id']}/checkpoint",
-    headers=KEY, json={"name": "model-loaded"}).json()
-
-# Fork — 50 workers with model pre-loaded, in <100ms
-requests.post(f"{API}/checkpoints/fork",
-    headers=KEY, json={"checkpoint_id": ckpt["checkpoint_id"], "count": 50})`
+# Every future call: model is already there. no re-import. no re-explain.
+requests.post(f"{API}/session/{s['session_id']}/execute",
+    headers=KEY, json={"code": "model.predict(new_data)"})`
 
 export function Hero() {
   const [copied, setCopied] = useState(false)
@@ -39,7 +38,6 @@ export function Hero() {
   return (
     <section className="px-6 py-24 md:px-12 lg:px-24 border-b border-border">
       <div className="mx-auto max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-        {/* Copy */}
         <div>
           <motion.p
             initial={{ opacity: 0, y: 8 }}
@@ -47,7 +45,7 @@ export function Hero() {
             transition={{ duration: 0.4 }}
             className="text-xs tracking-widest uppercase text-text-tertiary mb-4 font-mono"
           >
-            Stateful Python for AI agents
+            Code execution engine for AI agents
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
@@ -55,8 +53,8 @@ export function Hero() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="text-4xl md:text-5xl lg:text-6xl font-semibold text-text-primary leading-tight mb-6"
           >
-            Python sessions<br />
-            that <span className="text-accent">never</span> die.
+            Your agents are<br />
+            <span className="text-accent">burning</span> tokens.
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 12 }}
@@ -64,8 +62,10 @@ export function Hero() {
             transition={{ duration: 0.4, delay: 0.2 }}
             className="text-text-secondary leading-relaxed mb-8 max-w-md"
           >
-            Checkpoint interpreter state. Fork N parallel workers in milliseconds.
-            Share sessions across any model. Zero cold starts.
+            Every time your agent runs code, it re-reads API docs, re-imports libraries,
+            re-explains what it already did. That's thousands of tokens wasted per call.
+            greed-compute gives agents stateful Python sessions, so they set up once and
+            just keep working.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -77,18 +77,17 @@ export function Hero() {
               href="/playground"
               className="px-6 py-2.5 bg-accent text-background text-sm font-medium hover:bg-accent-dim transition-colors text-center"
             >
-              Try playground →
+              Try it free →
             </Link>
             <a
-              href="#api"
+              href="/docs"
               className="px-6 py-2.5 border border-border text-text-secondary text-sm hover:border-border-strong hover:text-text-primary transition-colors text-center"
             >
-              View API
+              Read the docs
             </a>
           </motion.div>
         </div>
 
-        {/* Code snippet */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}

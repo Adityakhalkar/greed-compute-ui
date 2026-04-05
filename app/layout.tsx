@@ -7,11 +7,11 @@ import './globals.css'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://greed-compute-ui.vercel.app'),
-  title: 'greed-compute — Stateful Python for AI agents',
-  description: 'Checkpoint interpreter state, fork N parallel workers, share across any model. Zero cold starts.',
+  title: 'greed-compute — Code execution engine for AI agents',
+  description: 'Your agents are burning tokens on code execution overhead. greed-compute fixes that with stateful Python sessions and cuntext-powered docs that cut context usage by 90%.',
   openGraph: {
     title: 'greed-compute',
-    description: 'Stateful Python for AI agents. 500× faster warm starts.',
+    description: 'Code execution engine for AI agents. Stateful sessions + cuntext docs = 90% less token overhead.',
     url: 'https://greed-compute-ui.vercel.app',
     type: 'website',
     siteName: 'greed-compute',
@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'greed-compute — Stateful Python for AI agents',
-    description: 'Checkpoint interpreter state, fork N parallel workers, share across any model. Zero cold starts.',
+    title: 'greed-compute — Code execution engine for AI agents',
+    description: 'Your agents are burning tokens. Stateful Python sessions + cuntext docs = 90% less overhead.',
   },
   robots: {
     index: true,

@@ -3,10 +3,10 @@
 import { useEffect, useRef } from 'react'
 
 const STATS = [
+  { value: '90%', label: 'fewer tokens on API docs', sub: 'cuntext: 500 tokens vs 15,000 for OpenAPI' },
   { value: '47ms', label: 'session creation', sub: 'warm pool, zero cold starts' },
   { value: '80ms', label: 'fork 50 workers', sub: 'from a single checkpoint' },
-  { value: '12ms', label: 'checkpoint save', sub: 'full interpreter snapshot' },
-  { value: '99.9%', label: 'uptime SLA', sub: 'production-grade infra' },
+  { value: '$0', label: 'monthly minimum', sub: 'pay per execution, nothing else' },
 ]
 
 export function Stats() {

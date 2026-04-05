@@ -99,9 +99,11 @@ export function Pricing() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-12">
           <p className="text-xs tracking-widest uppercase text-text-tertiary mb-3 font-mono">Pricing</p>
-          <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">Pay for what you use.</h2>
+          <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">Costs less than the tokens you save.</h2>
           <p className="text-text-secondary mt-3 max-w-lg">
-            500 free executions every day. Add a payment method to unlock higher limits — charged per execution after the free tier.
+            500 free executions every day. After that, $0.001 per execution. If your agent
+            makes 100 tool calls a day, greed-compute costs $0.05. The tokens it saves you?
+            Worth $2-15 depending on your model. Do the math.
           </p>
         </div>
 

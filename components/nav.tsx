@@ -61,6 +61,7 @@ export function Nav() {
           href="/"
           className="text-sm font-semibold text-text-primary tracking-tight hover:text-accent transition-colors"
         >
+          <img src="/icon.png" alt="" className="w-10 h-10 inline-block mr-1.5" style={{ imageRendering: 'pixelated' }} />
           greed<span className="text-accent">.</span>compute
         </Link>
 

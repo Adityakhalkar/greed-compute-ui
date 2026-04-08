@@ -30,6 +30,29 @@ export default function Home() {
       />
       <Nav />
       <Hero />
+
+      {/* Benchmark video */}
+      <section className="border-t border-border bg-background">
+        <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-24 py-16">
+          <div className="mb-8 text-center">
+            <p className="text-xs tracking-widest uppercase text-text-tertiary mb-3 font-mono">the benchmark</p>
+            <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">
+              Same task. Same model. <span className="text-accent">65% fewer tokens.</span>
+            </h2>
+          </div>
+          <div className="border border-border overflow-hidden bg-surface">
+            <video
+              src="/hero.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-auto block"
+            />
+          </div>
+        </div>
+      </section>
+
       <Stats />
 
       {/* The token problem */}

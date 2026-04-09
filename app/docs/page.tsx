@@ -126,6 +126,16 @@ export default function DocsPage() {
                     LangGraph
                   </a>
                 </li>
+                <li>
+                  <a href="/docs/integrations/anthropic" className="block text-xs font-mono py-1 text-text-tertiary hover:text-text-secondary transition-colors">
+                    Claude tool use
+                  </a>
+                </li>
+                <li>
+                  <a href="/docs/integrations/openclaw" className="block text-xs font-mono py-1 text-text-tertiary hover:text-text-secondary transition-colors">
+                    OpenClaw
+                  </a>
+                </li>
               </ul>
             </div>
           </nav>

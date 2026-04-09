@@ -121,6 +121,11 @@ export default function DocsPage() {
                     CrewAI
                   </a>
                 </li>
+                <li>
+                  <a href="/docs/integrations/langgraph" className="block text-xs font-mono py-1 text-text-tertiary hover:text-text-secondary transition-colors">
+                    LangGraph
+                  </a>
+                </li>
               </ul>
             </div>
           </nav>

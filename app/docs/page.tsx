@@ -113,6 +113,16 @@ export default function DocsPage() {
                 </li>
               ))}
             </ul>
+            <div className="mt-8 pt-4 border-t border-border">
+              <p className="text-xs tracking-widest uppercase text-text-tertiary mb-3 font-mono">Integrations</p>
+              <ul className="space-y-1">
+                <li>
+                  <a href="/docs/integrations/crewai" className="block text-xs font-mono py-1 text-text-tertiary hover:text-text-secondary transition-colors">
+                    CrewAI
+                  </a>
+                </li>
+              </ul>
+            </div>
           </nav>
 
           {/* Content */}

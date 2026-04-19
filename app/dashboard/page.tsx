@@ -12,17 +12,19 @@ import { cn } from '@/lib/utils'
 interface UsageData {
   plan: string
   billing_status: string
-  usage: {
-    executions: { used: number; limit: number | null; remaining: number | null }
-    swarms: { used: number; limit: number | null; remaining: number | null }
-    total_compute_ms: number
-    checkpoint_storage_used_mb: number
-    checkpoint_storage_limit_mb: number | null
-    checkpoint_retention_days: number
+  credits: {
+    used: number
+    limit: number | null
+    remaining: number | null
+    resets: string
+  }
+  storage: {
+    used_mb: number
+    limit_mb: number | null
+    retention_days: number
   }
   limits: {
     requests_per_minute: number
-    executions_per_day: number | null
     concurrent_sessions: number
     max_execution_secs: number
   }
@@ -154,13 +156,14 @@ function DashboardContent() {
 
   if (!ready) return <DashboardSkeleton />
 
-  const plan = usage?.plan || 'free'
-  const isPaid = plan !== 'free'
-  const execUsed = usage?.usage?.executions?.used ?? 0
-  const execLimit = usage?.usage?.executions?.limit
-  const execPercent = execLimit ? Math.round((execUsed / execLimit) * 100) : 0
-  const storageUsed = usage?.usage?.checkpoint_storage_used_mb ?? 0
-  const storageLimit = usage?.usage?.checkpoint_storage_limit_mb
+  const plan = usage?.plan || 'hobby'
+  const isPaid = plan !== 'hobby'
+  const creditsUsed = usage?.credits?.used ?? 0
+  const creditsLimit = usage?.credits?.limit ?? null
+  const creditsRemaining = usage?.credits?.remaining ?? null
+  const creditsPercent = creditsLimit ? Math.round((creditsUsed / creditsLimit) * 100) : 0
+  const storageUsed = usage?.storage?.used_mb ?? 0
+  const storageLimit = usage?.storage?.limit_mb ?? null
   const storagePercent = storageLimit ? Math.round((storageUsed / storageLimit) * 100) : 0
 
   return (
@@ -232,20 +235,20 @@ function DashboardContent() {
             )}
           </div>
           <div className="border border-border bg-surface p-6">
-            <p className="text-xs uppercase tracking-widest text-text-tertiary mb-2">Executions today</p>
+            <p className="text-xs uppercase tracking-widest text-text-tertiary mb-2">Credits today</p>
             <p className="text-2xl font-semibold text-text-primary tabular-nums">
-              {execUsed}
+              {creditsUsed}
               <span className="text-text-tertiary text-base font-normal">
-                {execLimit ? ` / ${execLimit}` : ' / ∞'}
+                {creditsLimit ? ` / ${creditsLimit}` : ' / ∞'}
               </span>
             </p>
-            {execLimit && (
-              <div className="mt-3 h-1 bg-border-strong" role="progressbar" aria-valuenow={execPercent} aria-valuemin={0} aria-valuemax={100}>
-                <div className={cn('h-full transition-all', execPercent > 80 ? 'bg-error' : 'bg-accent')} style={{ width: `${Math.min(execPercent, 100)}%` }} />
+            {creditsLimit && (
+              <div className="mt-3 h-1 bg-border-strong">
+                <div className={cn('h-full transition-all', creditsPercent > 80 ? 'bg-error' : 'bg-accent')} style={{ width: `${Math.min(creditsPercent, 100)}%` }} />
               </div>
             )}
             <p className="mt-2 text-xs text-text-tertiary">
-              {isPaid ? 'Metered billing after free tier' : 'Resets at midnight UTC'}
+              {creditsRemaining !== null ? `${creditsRemaining} remaining` : 'Unlimited'} · resets midnight UTC
             </p>
           </div>
           <div className="border border-border bg-surface p-6">
@@ -262,7 +265,7 @@ function DashboardContent() {
               </div>
             )}
             <p className="mt-2 text-xs text-text-tertiary">
-              Retention: {usage.usage.checkpoint_retention_days} days
+              Retention: {usage.storage.retention_days} days
             </p>
           </div>
         </div>

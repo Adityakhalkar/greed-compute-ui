@@ -6,91 +6,91 @@ import { cn } from '@/lib/utils'
 
 const PLANS = [
   {
-    name: 'Free',
+    name: 'Hobby',
     price: '$0',
     period: 'forever',
     description: 'Get started. No credit card.',
     features: [
-      '500 executions / day',
-      '3 concurrent sessions',
-      '50 MB checkpoint storage',
-      '1 day retention',
-      'Blank template only',
-      '5 fork workers max',
+      '50 credits / day',
+      '1 credit = 1 execution-second',
+      '2 concurrent sessions',
+      '200 MB checkpoint storage',
+      '3-day retention',
+      '60 req / min',
     ],
     cta: 'Get API key',
     href: '/login',
     accent: false,
     checkout: false,
+    plan: null,
   },
   {
-    name: 'Pay as you go',
-    price: '$0.001',
-    period: '/ execution',
-    description: '500 free daily. Pay only for what you use.',
+    name: 'Builder',
+    price: '$15',
+    period: '/ month',
+    description: 'For developers building real agent workflows.',
     features: [
-      '500 free executions / day',
-      '$0.001 per execution after (= $1 / 1,000)',
-      '50 concurrent sessions',
+      '500 credits / day',
+      '1 credit = 1 execution-second',
+      '10 concurrent sessions',
       '5 GB checkpoint storage',
-      '30 day retention',
-      'All templates (ML, data-science, scraping)',
-      'Fork up to 50 workers',
-      '$0 monthly minimum',
+      '30-day retention',
+      '300 req / min',
+      'All session templates',
+      'CALF checkpoint fork',
     ],
-    cta: 'Add payment method',
+    cta: 'Upgrade to Builder',
     href: '#',
     accent: true,
     checkout: true,
+    plan: 'builder',
   },
   {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    description: 'Dedicated infra, SLAs, volume pricing.',
+    name: 'Scale',
+    price: '$49',
+    period: '/ month',
+    description: 'For teams running production agent workloads.',
     features: [
-      'Unlimited everything',
-      'Dedicated warm pool',
-      'Custom templates',
-      'SSO / SAML',
-      'SLA 99.9%',
-      'Slack / dedicated support',
+      '5,000 credits / day',
+      '1 credit = 1 execution-second',
+      '100 concurrent sessions',
+      '50 GB checkpoint storage',
+      '90-day retention',
+      '2,000 req / min',
+      'Shared Agent Workspaces (SAW)',
+      'Agent swarm / map-reduce',
     ],
-    cta: 'Talk to us',
-    href: 'mailto:hello@deep-ml.com?subject=greed-compute enterprise',
+    cta: 'Upgrade to Scale',
+    href: '#',
     accent: false,
-    checkout: false,
+    checkout: true,
+    plan: 'scale',
   },
 ]
 
 export function Pricing() {
-  const [loading, setLoading] = useState(false)
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
 
-  const handleCheckout = async () => {
-    setLoading(true)
+  const handleCheckout = async (plan: string) => {
+    setLoadingPlan(plan)
     try {
       const res = await fetch('/api/v1/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({
-          plan: 'pro',
-          success_url: `${window.location.origin}/dashboard?upgraded=true`,
-          cancel_url: `${window.location.origin}/upgrade`,
+          plan,
+          success_url: `${window.location.origin}/dashboard?upgraded=1`,
+          cancel_url: window.location.href,
         }),
       })
-      if (res.status === 401) {
-        window.location.href = '/login'
-        return
-      }
+      if (res.status === 401) { window.location.href = '/login'; return }
       const data = await res.json()
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url
-      }
+      if (data.checkout_url) window.location.href = data.checkout_url
     } catch {
       // silently fail
     } finally {
-      setLoading(false)
+      setLoadingPlan(null)
     }
   }
 
@@ -101,9 +101,8 @@ export function Pricing() {
           <p className="text-xs tracking-widest uppercase text-text-tertiary mb-3 font-mono">Pricing</p>
           <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">Costs less than the tokens you save.</h2>
           <p className="text-text-secondary mt-3 max-w-lg">
-            500 free executions every day. After that, $0.001 per execution. If your agent
-            makes 100 tool calls a day, greed-compute costs $0.05. The tokens it saves you?
-            Worth $2-15 depending on your model. Do the math.
+            1 credit = 1 second of execution time. Credits reset daily at midnight UTC.
+            Idle sessions cost zero — you only pay for compute that actually runs.
           </p>
         </div>
 
@@ -142,13 +141,18 @@ export function Pricing() {
                 ))}
               </ul>
 
-              {plan.checkout ? (
+              {plan.checkout && plan.plan ? (
                 <button
-                  onClick={handleCheckout}
-                  disabled={loading}
-                  className="block text-center py-2.5 text-xs font-medium transition-colors bg-accent text-background hover:bg-accent-dim disabled:opacity-50"
+                  onClick={() => handleCheckout(plan.plan!)}
+                  disabled={loadingPlan === plan.plan}
+                  className={cn(
+                    'block text-center py-2.5 text-xs font-medium transition-colors disabled:opacity-50',
+                    plan.accent
+                      ? 'bg-accent text-background hover:bg-accent-dim'
+                      : 'border border-border text-text-secondary hover:border-border-strong hover:text-text-primary'
+                  )}
                 >
-                  {loading ? 'Redirecting...' : plan.cta}
+                  {loadingPlan === plan.plan ? 'Redirecting...' : plan.cta}
                 </button>
               ) : (
                 <a
@@ -166,6 +170,14 @@ export function Pricing() {
             </motion.div>
           ))}
         </div>
+
+        <p className="mt-8 text-center text-xs text-text-tertiary">
+          Need more?{' '}
+          <a href="mailto:hello@deep-ml.com?subject=greed-compute enterprise" className="text-accent hover:text-accent-dim transition-colors">
+            Contact us
+          </a>{' '}
+          for custom enterprise plans.
+        </p>
       </div>
     </section>
   )
